@@ -46,6 +46,8 @@ for filename in os.listdir(IMAGE_DIR):
 					x, y, w, h = cv2.boundingRect(approx)
 					aspect_ratio = w / float(h)
 					if 2 <= aspect_ratio <= 6:  # Typical license plate aspect ratio
+						# ignore this ratio thing and move the bottom part outside of it
+						# just to test
 						roi = gray[y:y + h, x:x + w]
 						roi = cv2.adaptiveThreshold(roi, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 						plate_text = pytesseract.image_to_string(roi, config='--psm 8')
