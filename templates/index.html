@@ -1,11 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>License Plate Reader</title>
+	<title>License Plate OCR</title>
+	<style>
+		body {
+			text-align: center;
+			font-family: Arial, sans-serif;
+		}
+
+		video {
+			width: 80%;
+			max-width: 600px;
+			border: 2px solid black;
+		}
+	</style>
 </head>
+
 <body>
-	<h1>License Plate Reader</h1>
+
+	<h2>License Plate OCR</h2>
+	<video id="video" autoplay></video>
+	<canvas id="canvas" style="display:none;"></canvas>
+	<p id="result"></p>
+
+	<script>
+		const video = document.getElementById('video');
+		const canvas = document.getElementById('canvas');
+		const resultText = document.getElementById('result');
+		const ctx = canvas.getContext('2d');
+
+		async function startCamera() {
+			try {
+				const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+				video.srcObject = stream;
+			} catch (error) {
+				console.error("Error accessing camera:", error);
+			}
+		}
+
+		function captureFrame() {
+			canvas.width = video.videoWidth;
+			canvas.height = video.videoHeight;
+			ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+			canvas.toBlob(blob => {
+				const formData = new FormData();
+				formData.append('image', blob, 'frame.jpg');
+
+				fetch('/process_image', {
+					method: 'POST',
+					body: formData
+				}).then(response => response.json()).then(data => {
+						resultText.innerText = "Detected Plate: " + data.plate;
+					}).catch(error => console.error("Error sending image:", error));
+			}, 'image/jpeg');
+		}
+
+		setInterval(captureFrame, 3_000); // Capture frame every 3 seconds
+
+		startCamera();
+	</script>
+
 </body>
+
 </html>
