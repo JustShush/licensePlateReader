@@ -2,3 +2,6 @@ flask
 flask-cors
 pytesseract
 imutils
+easyocr
+paddleocr
+paddlepaddle
