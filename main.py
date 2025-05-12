@@ -1,48 +1,51 @@
 import os
-from flask import Flask, request, render_template, jsonify, url_for, send_file, redirect
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-import cv2
-import numpy as np
-import pytesseract
+from paddleocr import PaddleOCR
+import tempfile
+import asyncio
 
 app = Flask(__name__)
-CORS(app)  # Allow cross-origin requests (for frontend)
-
-# C:\Users\Administrador\AppData\Local\Programs\Tesseract-OCR
+CORS(app)
 
 @app.route('/')
-def main():
+def home():
 	return render_template("index.html")
 
-def process_license_plate(image):
-	# Convert image to grayscale
-	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-	# Apply edge detection
-	edged = cv2.Canny(gray, 100, 200)
-
-	# Find contours
-	contours, _ = cv2.findContours(edged, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-	# Loop through contours to find potential plates
-	for cnt in contours:
-		x, y, w, h = cv2.boundingRect(cnt)
-		aspect_ratio = w / h
-		if 2 < aspect_ratio < 5:  # Typical aspect ratio of a license plate
-			plate_img = gray[y:y+h, x:x+w]
-			text = pytesseract.image_to_string(plate_img, config='--psm 7')  # OCR
-			return text.strip()
-
-	return "No plate detected"
+async def run_ocr(image_path):
+	# PaddleOCR is synchronous, so we run it in a thread
+	ocr = PaddleOCR()
+	loop = asyncio.get_event_loop()
+	result = await loop.run_in_executor(
+		None,  # Uses default ThreadPoolExecutor
+		lambda: ocr.ocr(image_path, cls=True))
+	return ' '.join([line[1][0] for line in result[0] if line[1]])
 
 @app.route('/process_image', methods=['POST'])
-def process_image():
+async def process_image():
+	if 'image' not in request.files:
+		return jsonify({"error": "No image file"}), 400
+		
 	file = request.files['image']
-	npimg = np.frombuffer(file.read(), np.uint8)
-	image = cv2.imdecode(npimg, cv2.IMREAD_COLOR) 
+	temp_path = None
 
-	plate_text = process_license_plate(image)
-	return jsonify({"plate": plate_text})
+	try:
+		# Save to temp file (synchronous but fast)
+		with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
+			file.save(tmp.name)
+			temp_path = tmp.name
 
-if __name__ == "__main__":
-	app.run(host="127.0.0.1", debug=True, port=5000)
+		# Process with async OCR
+		plate_text = await run_ocr(temp_path)
+		return jsonify({"plate": plate_text})
+
+	except Exception as e:
+		return jsonify({"error": str(e)}), 500
+
+	finally:
+		# Clean up temp file
+		if temp_path and os.path.exists(temp_path):
+			os.remove(temp_path)
+
+if __name__ == '__main__':
+	app.run(host='0.0.0.0', port=5000, debug=True)
