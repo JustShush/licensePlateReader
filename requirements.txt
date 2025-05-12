@@ -5,3 +5,5 @@ imutils
 easyocr
 paddleocr
 paddlepaddle
+quart
+# flask-like async framework
