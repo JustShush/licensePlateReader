@@ -12,10 +12,6 @@ CORS(app)
 def home():
 	return render_template("Matriculas.html")
 
-@app.route('/verificar')
-def verificar():
-	return render_template("verificar.html")
-
 @app.route('/ler')
 def ler_matricula():
 	return render_template("LerMatricula.html")
