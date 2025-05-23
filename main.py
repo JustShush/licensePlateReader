@@ -9,8 +9,17 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route('/')
+@app.route('/')
 def home():
-	return render_template("index.html")
+	return render_template("Matriculas.html")
+
+@app.route('/verificar')
+def verificar():
+	return render_template("verificar.html")
+
+@app.route('/ler')
+def ler_matricula():
+	return render_template("LerMatricula.html")
 
 async def run_ocr(image_path):
 	# PaddleOCR is synchronous, so we run it in a thread

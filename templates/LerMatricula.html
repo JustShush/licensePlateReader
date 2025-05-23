@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>License Plate OCR</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/Matriculas.css') }}">
+	<style>
+		body {
+			text-align: center;
+			font-family: Arial, sans-serif;
+		}
+
+		video {
+			width: 80%;
+			max-width: 600px;
+			border: 2px solid black;
+		}
+
+		select {
+			margin-top: 10px;
+			padding: 5px;
+			font-size: 16px;
+		}
+	</style>
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('home') }}"><i class="fas fa-home"></i>Início</a></li>
+            <li><a href="{{ url_for('verificar') }}"><i class="fas fa-search"></i>Verificar Matrícula</a></li>
+        </ul>
+    </nav>
+
+	<h2>License Plate OCR</h2>
+	<select id="cameraSelect"></select><br>
+	<video id="video" autoplay></video>
+	<canvas id="canvas" style="display:none;"></canvas>
+	<p id="result"></p>
+
+	<script>
+		const video = document.getElementById('video');
+		const canvas = document.getElementById('canvas');
+		const resultText = document.getElementById('result');
+		const ctx = canvas.getContext('2d');
+		const cameraSelect = document.getElementById('cameraSelect');
+		let currentStream = null;
+		let isProcessing = false; // 🛑 Prevent overlapping calls
+
+		async function listCameras() 
+        {
+			const devices = await navigator.mediaDevices.enumerateDevices();
+			const videoDevices = devices.filter(device => device.kind === 'videoinput');
+			cameraSelect.innerHTML = '';
+			videoDevices.forEach((device, index) => {
+				const option = document.createElement('option');
+				option.value = device.deviceId;
+				option.text = device.label || `Camera ${index + 1}`;
+				cameraSelect.appendChild(option);
+			});
+		}
+
+		async function startCamera(deviceId) {
+			if (currentStream) {
+				currentStream.getTracks().forEach(track => track.stop());
+			}
+
+			try {
+				const constraints = {
+					video: deviceId ? { deviceId: { exact: deviceId } } : true
+				};
+				const stream = await navigator.mediaDevices.getUserMedia(constraints);
+				currentStream = stream;
+				video.srcObject = stream;
+			} catch (error) {
+				console.error("Error accessing camera:", error);
+			}
+		}
+
+		function captureFrame() {
+			if (isProcessing || !video.videoWidth) return;
+			isProcessing = true;
+
+			canvas.width = video.videoWidth;
+			canvas.height = video.videoHeight;
+			ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+			canvas.toBlob(blob => {
+				const formData = new FormData();
+				formData.append('image', blob, 'frame.jpg');
+
+				fetch('/process_image', {
+					method: 'POST',
+					body: formData
+				})
+					.then(response => response.json())
+					.then(data => {
+						resultText.innerText = "Detected Plate: " + data.plate;
+					})
+					.catch(error => console.error("Error sending image:", error))
+					.finally(() => {
+						isProcessing = false;
+					});
+			}, 'image/jpeg');
+		}
+
+		cameraSelect.addEventListener('change', () => {
+			startCamera(cameraSelect.value);
+		});
+
+		(async () => {
+			await listCameras();
+			if (cameraSelect.options.length > 0) {
+				startCamera(cameraSelect.value);
+			}
+			setInterval(captureFrame, 4000); // 🔁 Run every 4 seconds
+		})();
+	</script>
+
+</body>
+
+</html>

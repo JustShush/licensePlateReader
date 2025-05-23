@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identificação de Matriuclas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/Matriculas.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<body>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('home') }}"><i class="fas fa-home"></i>Início</a></li>
+			<li><a href="{{ url_for('verificar') }}"><i class="fas fa-search"></i>Verificar Matrícula</a></li>
+			<li><a href="{{ url_for('ler_matricula') }}"><i class="fas fa-search"></i>Ler Matricula</a></li>
+        </ul>
+    </nav>
+    <div class="container">
+        <h1>Bem-vindo ao Sistema de Identificação de Matrículas</h1>
+        <p>Clique em "Verificar Matrícula" para aceder ao menu de verificação.</p>
+        <p>Clique em "Ler Matricula" para aceder à camara.</p>
+    </div>
+    <footer>
+        <p>Pagina feita por Dinis Marques, José Salgado e Pedro Pinto </p>
+    </footer>
+
+	<script src="{{ url_for('static', filename='scripts/Matriculas.js') }}"></script>
+</body>
+</html>
