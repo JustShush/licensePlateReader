@@ -9,7 +9,6 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route('/')
-@app.route('/')
 def home():
 	return render_template("Matriculas.html")
 
